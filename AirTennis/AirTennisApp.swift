@@ -12,7 +12,8 @@ import SwiftData
 struct AirTennisApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            SwingData.self,
+            GoalSettings.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +26,7 @@ struct AirTennisApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
         }
         .modelContainer(sharedModelContainer)
     }
