@@ -208,10 +208,10 @@ class TrainingViewModel: ObservableObject {
         // 播放挥拍音（音量根据速度调整）
         audioManager.playSwingSound(swingSpeed: swing.swingSpeed)
 
-        // 延迟播放击球音（模拟击球时刻）
+        // 延迟播放击球音（模拟击球时刻，根据速度等级选择不同音效）
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            let intensity = Float(min(swing.swingSpeed / 30.0, 1.0))
-            self.audioManager.playHitSound(intensity: intensity)
+            // 使用新的速度分级音效方法
+            self.audioManager.playHitSoundBySpeed(swingSpeed: swing.swingSpeed)
         }
     }
 

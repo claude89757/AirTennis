@@ -51,9 +51,9 @@ final class SwingData {
 
     /// 速度等级（用于UI颜色显示）
     var speedLevel: SpeedLevel {
-        if swingSpeed >= 25 { return .excellent }
-        if swingSpeed >= 20 { return .good }
-        if swingSpeed >= 15 { return .medium }
+        if swingSpeed >= 22 { return .excellent }
+        if swingSpeed >= 18 { return .good }
+        if swingSpeed >= 12 { return .medium }
         return .low
     }
 }

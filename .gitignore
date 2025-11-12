@@ -99,3 +99,7 @@ add_files_to_xcode.py
 
 # Claude Code
 .claude/
+
+# Routing app coverage files (prevent ITMS-90118 error)
+*.geojson
+ServiceArea.geojson

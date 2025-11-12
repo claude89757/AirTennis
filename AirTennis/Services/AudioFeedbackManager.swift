@@ -7,6 +7,7 @@
 
 import Foundation
 import AVFoundation
+import AudioToolbox
 
 /// 音频反馈管理器
 class AudioFeedbackManager {
@@ -38,6 +39,8 @@ class AudioFeedbackManager {
         case hit        // 击球音（impact）
         case success    // 成功音
         case error      // 错误音
+        case hitLight   // 轻击球音（MP3，用于中等速度）
+        case hitHeavy   // 重击球音（MP3，用于高速）
 
         var fileName: String {
             switch self {
@@ -45,8 +48,28 @@ class AudioFeedbackManager {
             case .hit: return "hit"
             case .success: return "success"
             case .error: return "error"
+            case .hitLight: return "tennis-ball-hit-151257"
+            case .hitHeavy: return "tennis-ball-hit-386155"
             }
         }
+        
+        var fileExtension: String {
+            switch self {
+            case .swing, .hit, .success, .error:
+                return "wav"
+            case .hitLight, .hitHeavy:
+                return "mp3"
+            }
+        }
+    }
+    
+    // MARK: - System Sound IDs
+    
+    /// iOS系统音效ID
+    enum SystemSoundID: UInt32 {
+        case tink = 1000   // 轻快的提示音
+        case ping = 1001   // 清脆的提示音
+        case pop = 1002    // 短促的提示音
     }
 
     // MARK: - Initialization
@@ -157,14 +180,29 @@ class AudioFeedbackManager {
 
     /// 预加载所有音效（从 Bundle）
     func preloadAllSounds() {
+        // 预加载WAV格式音效
         for soundType in [SoundType.swing, .hit, .success, .error] {
             if let url = Bundle.main.url(
                 forResource: soundType.fileName,
-                withExtension: "wav"
+                withExtension: soundType.fileExtension
             ) {
                 preloadSound(soundType, from: url)
             } else {
-                print("⚠️ Sound file not found: \(soundType.fileName).wav")
+                print("⚠️ Sound file not found: \(soundType.fileName).\(soundType.fileExtension)")
+                // 创建静音缓冲区作为占位符
+                createSilentBuffer(for: soundType)
+            }
+        }
+        
+        // 预加载MP3格式音效
+        for soundType in [SoundType.hitLight, .hitHeavy] {
+            if let url = Bundle.main.url(
+                forResource: soundType.fileName,
+                withExtension: soundType.fileExtension
+            ) {
+                preloadSound(soundType, from: url)
+            } else {
+                print("⚠️ Sound file not found: \(soundType.fileName).\(soundType.fileExtension)")
                 // 创建静音缓冲区作为占位符
                 createSilentBuffer(for: soundType)
             }
@@ -240,6 +278,50 @@ class AudioFeedbackManager {
     /// - Parameter intensity: 强度 (0.0 - 1.0)
     func playHitSound(intensity: Float = 1.0) {
         playSound(.hit, volume: intensity)
+    }
+    
+    /// 播放系统音效
+    /// - Parameter soundID: 系统音效ID
+    func playSystemSound(_ soundID: SystemSoundID) {
+        AudioServicesPlaySystemSound(soundID.rawValue)
+    }
+    
+    /// 根据速度等级播放击球音效
+    /// - Parameter swingSpeed: 挥拍速度 (m/s)
+    func playHitSoundBySpeed(swingSpeed: Double) {
+        let speedLevel = getSpeedLevel(swingSpeed)
+        
+        switch speedLevel {
+        case .low:
+            // 低速：使用系统音效
+            playSystemSound(.tink)
+            
+        case .medium:
+            // 中等速度：使用较轻的MP3击球声
+            playSound(.hitLight, volume: 0.7)
+            
+        case .good:
+            // 良好速度：使用较重的MP3击球声
+            playSound(.hitHeavy, volume: 0.8)
+            
+        case .excellent:
+            // 优秀速度：使用较重的MP3击球声 + 系统音效组合
+            playSound(.hitHeavy, volume: 1.0)
+            // 延迟播放系统音效以增强反馈
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.playSystemSound(.ping)
+            }
+        }
+    }
+    
+    /// 根据速度获取速度等级
+    /// - Parameter swingSpeed: 挥拍速度 (m/s)
+    /// - Returns: 速度等级
+    private func getSpeedLevel(_ swingSpeed: Double) -> SpeedLevel {
+        if swingSpeed >= 22 { return .excellent }
+        if swingSpeed >= 18 { return .good }
+        if swingSpeed >= 12 { return .medium }
+        return .low
     }
 
     /// 播放成功音效
