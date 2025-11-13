@@ -307,8 +307,8 @@ class AudioFeedbackManager {
         case .excellent:
             // 优秀速度：使用较重的MP3击球声 + 系统音效组合
             playSound(.hitHeavy, volume: 1.0)
-            // 延迟播放系统音效以增强反馈
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            // 稍微延迟播放系统音效以避免完全重叠（外层已有0.05秒延迟）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
                 self.playSystemSound(.ping)
             }
         }
