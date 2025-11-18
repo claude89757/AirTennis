@@ -74,11 +74,14 @@ class SwingDetector: ObservableObject {
     /// 挥拍过程中的Z轴加速度累积（用于判断正反手）
     private var accelerationZAccumulator: Double = 0.0
 
+    /// 上一帧的速度（用于判断加速/减速阶段）
+    private var previousSpeed: Double = 0.0
+
     /// 用于防抖的计时器
     private var cooldownTimer: Timer?
 
-    /// 冷却时间（秒）- 防止重复检测
-    private let cooldownDuration: TimeInterval = 0.5
+    /// 冷却时间（秒）- 防止重复检测（增加到1.5秒，避免引拍回程被误判）
+    private let cooldownDuration: TimeInterval = 1.5
 
     // MARK: - Public Methods
 
@@ -109,6 +112,7 @@ class SwingDetector: ObservableObject {
         maxAcceleration = 0.0
         rotationAccumulator = 0.0
         accelerationZAccumulator = 0.0
+        previousSpeed = 0.0
         cooldownTimer?.invalidate()
         cooldownTimer = nil
     }
@@ -137,6 +141,8 @@ class SwingDetector: ObservableObject {
         maxSpeed = 0.0
         maxAcceleration = 0.0
         rotationAccumulator = 0.0
+        accelerationZAccumulator = 0.0  // 重置Z轴加速度累加器
+        previousSpeed = 0.0  // 重置上一帧速度
 
         print("🎾 Swing detection started")
 
@@ -157,11 +163,18 @@ class SwingDetector: ObservableObject {
         let acceleration = speedCalculator.calculateAccelerationMagnitude(acceleration: motion.userAcceleration)
         maxAcceleration = max(maxAcceleration, acceleration)
 
-        // 累积Z轴加速度（用于判断正反手：正手屏幕朝前+，反手背面朝前-）
-        accelerationZAccumulator += motion.userAcceleration.z
+        // 只在加速阶段累积Z轴加速度（避免引拍回程的反向加速度干扰判断）
+        // 当速度还在上升时，才累积Z轴加速度
+        if currentSpeed >= previousSpeed * 0.95 {  // 允许5%的波动
+            // 累积Z轴加速度（用于判断正反手：正手屏幕朝前+，反手背面朝前-）
+            accelerationZAccumulator += motion.userAcceleration.z
 
-        // 累积旋转方向（备用）
-        rotationAccumulator += motion.rotationRate.z
+            // 累积旋转方向（备用）
+            rotationAccumulator += motion.rotationRate.z
+        }
+
+        // 更新上一帧速度
+        previousSpeed = currentSpeed
     }
 
     /// 检查是否达到速度峰值
